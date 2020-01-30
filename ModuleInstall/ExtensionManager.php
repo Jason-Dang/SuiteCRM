@@ -80,41 +80,21 @@ class ExtensionManager
             $dir = dir($moduleInstall);
 
             while ($entry = $dir->read()) {
+                if (static::shouldSkipFile($entry, $moduleInstall, $filter)) {
+                    continue;
+                }
                 $shouldSave = true;
-                if ($entry === '.' || $entry === '..' || strtolower(substr($entry, -4)) !== '.php') {
-                    continue;
-                }
-
-                if (!is_file("$moduleInstall/$entry")) {
-                    continue;
-                }
-
-                if (!empty($filter) && substr_count($entry, $filter) <= 0) {
-                    continue;
-                }
-
                 $file = file_get_contents("$moduleInstall/$entry");
                 $extensionContents .= PHP_EOL . static::removePhpTagsFromString($file);
             }
         }
 
-        $extensionContents .= "\n?>";
-
         if ($shouldSave) {
-            if (!file_exists("custom/$extPath")) {
-                mkdir_recursive("custom/$extPath", true);
-            }
-
-            $out = sugar_fopen("custom/$extPath/$targetFileName", 'wb');
-            fwrite($out, $extensionContents);
-            fclose($out);
-
+            static::saveFile($extPath, $targetFileName, $extensionContents);
             return;
         }
 
-        if (file_exists("custom/$extPath/$targetFileName")) {
-            unlink("custom/$extPath/$targetFileName");
-        }
+        static::unlinkFile($extPath, $targetFileName);
     }
 
     /**
@@ -128,8 +108,10 @@ class ExtensionManager
         $targetFileName,
         $filter = ''
     ) {
-        $moduleExtPath = "custom/Extension/modules/<module>/$extension to custom/modules/<module>/$extension$targetFileName";
-        static::$logger->{'debug'}(self::class . "::compileExtensionFiles() : Merging module files in $moduleExtPath");
+        static::$logger->{'debug'}(
+            self::class . "::compileExtensionFiles() : Merging module files in " .
+            "custom/Extension/modules/<module>/$extension to custom/modules/<module>/$extension/$targetFileName"
+        );
 
         foreach (static::$moduleList as $module) {
             $extensionContents = '<?php' . PHP_EOL . '// WARNING: The contents of this file are auto-generated' . PHP_EOL;
@@ -143,15 +125,7 @@ class ExtensionManager
                 $override = [];
 
                 while ($entry = $dir->read()) {
-                    if ($entry === '.' || $entry === '..' || strtolower(substr($entry, -4)) !== '.php') {
-                        continue;
-                    }
-
-                    if (!is_file("$moduleInstall/$entry")) {
-                        continue;
-                    }
-
-                    if (!empty($filter) && substr_count($entry, $filter) <= 0) {
+                    if (static::shouldSkipFile($entry, $moduleInstall, $filter)) {
                         continue;
                     }
 
@@ -171,23 +145,12 @@ class ExtensionManager
                 }
             }
 
-            $extensionContents .= PHP_EOL . '?>';
-
             if ($shouldSave) {
-                if (!file_exists("custom/$extPath")) {
-                    mkdir_recursive("custom/$extPath", true);
-                }
-
-                $out = sugar_fopen("custom/$extPath/$targetFileName", 'wb');
-                fwrite($out, $extensionContents);
-                fclose($out);
-
+                static::saveFile($extPath, $targetFileName, $extensionContents);
                 continue;
             }
 
-            if (file_exists("custom/$extPath/$targetFileName")) {
-                unlink("custom/$extPath/$targetFileName");
-            }
+            static::unlinkFile($extPath, $targetFileName);
         }
     }
 
@@ -202,5 +165,65 @@ class ExtensionManager
             '',
             $string
         );
+    }
+
+    /**
+     * @param $entry
+     * @param $moduleInstall
+     * @param $filter
+     * @return bool
+     */
+    protected static function shouldSkipFile(
+        $entry,
+        $moduleInstall,
+        $filter
+    ) {
+        if ($entry === '.' || $entry === '..' || strtolower(substr($entry, -4)) !== '.php') {
+            return true;
+        }
+
+        if (!is_file("$moduleInstall/$entry")) {
+            return true;
+        }
+
+        if (!empty($filter) && substr_count($entry, $filter) <= 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param string $extPath
+     * @param string $targetFileName
+     * @param string $extensionContents
+     * @return void
+     */
+    protected static function saveFile(
+        $extPath,
+        $targetFileName,
+        $extensionContents
+    ) {
+        if (!file_exists("custom/$extPath")) {
+            mkdir_recursive("custom/$extPath", true);
+        }
+
+        $extensionContents .= PHP_EOL;
+
+        $out = sugar_fopen("custom/$extPath/$targetFileName", 'wb');
+        fwrite($out, $extensionContents);
+        fclose($out);
+    }
+
+    /**
+     * @param $extPath
+     * @param $targetFileName
+     * @return void
+     */
+    protected static function unlinkFile($extPath, $targetFileName)
+    {
+        if (file_exists("custom/$extPath/$targetFileName")) {
+            unlink("custom/$extPath/$targetFileName");
+        }
     }
 }
