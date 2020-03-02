@@ -1,9 +1,5 @@
 <?php
 
-if (!defined('sugarEntry') || !sugarEntry) {
-    die('Not A Valid Entry Point');
-}
-
 /**
  * Class ExtensionManager
  */
@@ -18,6 +14,18 @@ class ExtensionManager
      * @var
      */
     protected static $logger;
+
+    /**
+     * Checks if authenticated and dies if not.
+     *
+     * @return void
+     */
+    protected static function handleAuth()
+    {
+        if (!defined('sugarEntry') || !sugarEntry) {
+            die('Not A Valid Entry Point');
+        }
+    }
 
     /**
      * Sets the static module and extension lists.
@@ -45,6 +53,7 @@ class ExtensionManager
         $filter = '',
         $applicationOnly = false
     ) {
+        static::handleAuth();
         static::initialise();
 
         if ($extension === 'Language' && strpos($targetFileName, $filter) !== 0) {
@@ -64,7 +73,7 @@ class ExtensionManager
      * @param string $filter
      * @return void
      */
-    public static function compileApplicationExtensions(
+    protected static function compileApplicationExtensions(
         $extension,
         $targetFileName,
         $filter = ''
@@ -103,7 +112,7 @@ class ExtensionManager
      * @param string $filter
      * @return void
      */
-    public static function compileModuleExtensions(
+    protected static function compileModuleExtensions(
         $extension,
         $targetFileName,
         $filter = ''
@@ -114,7 +123,11 @@ class ExtensionManager
         );
 
         foreach (static::$moduleList as $module) {
-            $extensionContents = '<?php' . PHP_EOL . '// WARNING: The contents of this file are auto-generated' . PHP_EOL;
+            $extensionContents = '<?php'
+                . PHP_EOL
+                . '// WARNING: The contents of this file are auto-generated'
+                . PHP_EOL;
+
             $extPath = "modules/$module/Ext/$extension";
             $moduleInstall  = "custom/Extension/$extPath";
             $shouldSave = false;
@@ -135,7 +148,10 @@ class ExtensionManager
                     }
 
                     $file = file_get_contents("$moduleInstall/$entry");
-                    static::$logger->{'debug'}(self::class . "->compileExtensionFiles(): found {$moduleInstall}{$entry}") ;
+                    static::$logger->{'debug'}(
+                        self::class . "->compileExtensionFiles(): found {$moduleInstall}{$entry}"
+                    );
+
                     $extensionContents .= PHP_EOL . static::removePhpTagsFromString($file);
                 }
 
@@ -158,7 +174,7 @@ class ExtensionManager
      * @param string $string
      * @return string
      */
-    public static function removePhpTagsFromString($string)
+    protected static function removePhpTagsFromString($string)
     {
         return str_replace(
             ['<?php', '?>', '<?PHP', '<?'],
