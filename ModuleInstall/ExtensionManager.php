@@ -2,6 +2,8 @@
 
 namespace SuiteCRM\ModuleInstall;
 
+use \LoggerManager;
+
 /**
  * Class ExtensionManager
  */
