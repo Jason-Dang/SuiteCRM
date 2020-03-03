@@ -1,5 +1,7 @@
 <?php
 
+namespace SuiteCRM\ModuleInstall;
+
 /**
  * Class ExtensionManager
  */

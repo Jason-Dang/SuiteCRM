@@ -203,7 +203,7 @@ class LanguageManager
                  );
 
         require_once 'ModuleInstall/ExtensionManager.php';
-        ExtensionManager::compileExtensionFiles('Language', '.lang.ext.php', $lang);
+        SuiteCRM\ModuleInstall\ExtensionManager::compileExtensionFiles('Language', '.lang.ext.php', $lang);
 
         #27023, if this module template language file was not attached , get the template from this module vardef cache file if exsits and load the template language files.
         static $createdModules;
